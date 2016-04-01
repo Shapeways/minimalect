@@ -33,6 +33,7 @@ module.exports = function(jQuery) {
 			remove_empty_option: true,
 			searchable: true, // whether or not the combobox functionality is enabled
 			ajax: null, // URL to an external resource
+			ajax_debounce: 0, // Debounce time for ajax requests to not flood server with requests
 			debug: false, // whether to be verbose in the console
 			live: true, // whether to automatically detect changes
 			listen_to_select: false, // listens for changes to the associated select element
@@ -165,6 +166,19 @@ module.exports = function(jQuery) {
 					});
 				}
 
+				// Event handler for filtering functionality on keypress
+				var filterHandler = function(e){
+					// if we're not navigating, filter
+					if($.inArray(e.keyCode, [38, 40, 13, 9, 27]) === -1){
+						m._filterChoices();
+					}
+				};
+
+				// Debounced handler for filtering functionality on keypress
+				if (op.ajax_debounce) {
+					filterHandler = m._debounce(filterHandler, op.ajax_debounce);
+				}
+
 				// key bindings for the input element
 				this.input.on("focus click", function(e){
 					e.stopPropagation();
@@ -204,12 +218,7 @@ module.exports = function(jQuery) {
 							m._hideChoices(m.wrapper);
 							break;
 					}
-				}).on("keyup", function(e){
-					// if we're not navigating, filter
-					if($.inArray(e.keyCode, [38, 40, 13, 9, 27]) === -1){
-						m._filterChoices();
-					}
-				});
+				}).on("keyup", filterHandler);
 
 				// if mutation observing is supported
 				if(window.MutationObserver){
@@ -494,6 +503,43 @@ module.exports = function(jQuery) {
 				}
 			},
 
+			// Underscore's debounce method.
+			_debounce: function(func, wait, immediate) {
+				if (wait) {
+					var timeout, args, context, timestamp, result;
+
+					var later = function() {
+						var last = new Date().getTime() - timestamp;
+
+						if (last < wait && last >= 0) {
+							timeout = setTimeout(later, wait - last);
+						} else {
+							timeout = null;
+							if (!immediate) {
+								result = func.apply(context, args);
+								if (!timeout) context = args = null;
+							}
+						}
+					};
+
+					return function() {
+						context = this;
+						args = arguments;
+						timestamp = new Date().getTime();
+						var callNow = immediate && !timeout;
+						if (!timeout) timeout = setTimeout(later, wait);
+						if (callNow) {
+							result = func.apply(context, args);
+							context = args = null;
+						}
+
+						return result;
+					};
+				} else {
+					func.apply(context, args);
+				}
+			},
+
 			// filter choices based on user input
 			_filterChoices: function(){
 				var wr = this.wrapper, // jQuery reference for the wrapper
@@ -502,9 +548,12 @@ module.exports = function(jQuery) {
 
 				if(op.ajax) {
 					// if we're searching from ajax
-
-					$.post(op.ajax, {"q": this.input.text()})
-						.success(function(data){
+					$.ajax({
+						url: op.ajax,
+						data: {"q": this.input.text()},
+						dataType: 'json',
+						type: 'GET',
+						success: function(data){
 							// we got a response
 
 							if(op.debug) console.log("Minimalect received ", data, " for query '"+m.input.text()+"' in ", m.element);
@@ -536,15 +585,16 @@ module.exports = function(jQuery) {
 								// callback, no results found
 								m.options.onfilter(false);
 							}
-						})
-						.error(function(data){
+						},
+						error: function(data){
 							// show feedback for the user
 							wr.find("."+op.class_empty).text(op.error_message);
 							wr.find("li").not("."+op.class_empty).addClass(op.class_hidden);
 							wr.find("."+op.class_empty).show();
 							// tell the console if debug mode is on
 							if(op.debug) console.error("Minimalect's AJAX query failed for ", m.element, " - came back with ", data);
-						});
+						}
+					});
 				} else {
 					// traditional filtering
 
