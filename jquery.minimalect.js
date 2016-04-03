@@ -557,6 +557,7 @@ module.exports = function(jQuery) {
 							if(data.length) {
 								// if we have results
 								var new_html = "";
+								new_html += '<option></option>';
 								$.each(data, function(k, choice){
 									// parse each data point to an option in the original
 									new_html += '<option value="'+choice.value+'">'+choice.name+'</option>';
