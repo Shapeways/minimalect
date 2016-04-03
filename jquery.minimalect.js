@@ -505,39 +505,35 @@ module.exports = function(jQuery) {
 
 			// Underscore's debounce method.
 			_debounce: function(func, wait, immediate) {
-				if (wait) {
-					var timeout, args, context, timestamp, result;
+				var timeout, args, context, timestamp, result;
 
-					var later = function() {
-						var last = new Date().getTime() - timestamp;
+				var later = function() {
+					var last = new Date().getTime() - timestamp;
 
-						if (last < wait && last >= 0) {
-							timeout = setTimeout(later, wait - last);
-						} else {
-							timeout = null;
-							if (!immediate) {
-								result = func.apply(context, args);
-								if (!timeout) context = args = null;
-							}
-						}
-					};
-
-					return function() {
-						context = this;
-						args = arguments;
-						timestamp = new Date().getTime();
-						var callNow = immediate && !timeout;
-						if (!timeout) timeout = setTimeout(later, wait);
-						if (callNow) {
+					if (last < wait && last >= 0) {
+						timeout = setTimeout(later, wait - last);
+					} else {
+						timeout = null;
+						if (!immediate) {
 							result = func.apply(context, args);
-							context = args = null;
+							if (!timeout) context = args = null;
 						}
+					}
+				};
 
-						return result;
-					};
-				} else {
-					func.apply(context, args);
-				}
+				return function() {
+					context = this;
+					args = arguments;
+					timestamp = new Date().getTime();
+					var callNow = immediate && !timeout;
+					if (!timeout) timeout = setTimeout(later, wait);
+					if (callNow) {
+						result = func.apply(context, args);
+						context = args = null;
+					}
+
+					return result;
+				};
 			},
 
 			// filter choices based on user input
