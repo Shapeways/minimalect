@@ -37,6 +37,7 @@ module.exports = function(jQuery) {
 			debug: false, // whether to be verbose in the console
 			live: true, // whether to automatically detect changes
 			listen_to_select: false, // listens for changes to the associated select element
+			show_title: false, // whether or not the option name will be shown as a title on hover (helpful for truncation)
 
 			// messages
 			placeholder: "Select a choice", // default placeholder when nothing is selected
@@ -390,7 +391,9 @@ module.exports = function(jQuery) {
 					} else {
 						if ($el.attr('value') === '' && m.options.remove_empty_option) return;
 						// create an li with a data attribute containing its value
-						readyhtml += '<li data-value="'+$el.val().replace(/"/g, "&quot;")+'" class="'+($el.attr("class") || "")+($el.prop("disabled") ? " "+m.options.class_disabled : "")+'">'+$el.text()+'</li>';
+						var titleText = 'title="' + $el.text() + '"';
+						var title = m.options.show_title ?  titleText : '';
+						readyhtml += '<li data-value="'+$el.val().replace(/"/g, "&quot;")+'" class="'+($el.attr("class") || "")+($el.prop("disabled") ? " "+m.options.class_disabled : "")+'"' + title + '>'+$el.text()+'</li>';
 					}
 				});
 				// spit it out
